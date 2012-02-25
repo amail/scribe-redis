@@ -53,38 +53,40 @@ const string meta_logfile_prefix = "scribe_meta<new_logfile>: ";
 
 boost::shared_ptr<Store>
 Store::createStore(const string& type, const string& category,
-                   bool readable, bool multi_category) {
+                   bool readable, bool multi_category, const string& trigger_path) {
+                   
   if (0 == type.compare("file")) {
-    return shared_ptr<Store>(new FileStore(category, multi_category, readable));
+    return shared_ptr<Store>(new FileStore(category, multi_category, trigger_path, readable));
   } else if (0 == type.compare("buffer")) {
-    return shared_ptr<Store>(new BufferStore(category, multi_category));
+    return shared_ptr<Store>(new BufferStore(category, multi_category, trigger_path));
   } else if (0 == type.compare("redis")) {
-    return shared_ptr<Store>(new RedisStore(category, multi_category));
+    return shared_ptr<Store>(new RedisStore(category, multi_category, trigger_path));
   } else if (0 == type.compare("network")) {
-    return shared_ptr<Store>(new NetworkStore(category, multi_category));
+    return shared_ptr<Store>(new NetworkStore(category, multi_category, trigger_path));
   } else if (0 == type.compare("bucket")) {
-    return shared_ptr<Store>(new BucketStore(category, multi_category));
+    return shared_ptr<Store>(new BucketStore(category, multi_category, trigger_path));
   } else if (0 == type.compare("thriftfile")) {
-    return shared_ptr<Store>(new ThriftFileStore(category, multi_category));
+    return shared_ptr<Store>(new ThriftFileStore(category, multi_category, trigger_path));
   } else if (0 == type.compare("null")) {
-    return shared_ptr<Store>(new NullStore(category, multi_category));
+    return shared_ptr<Store>(new NullStore(category, multi_category, trigger_path));
   } else if (0 == type.compare("multi")) {
-    return shared_ptr<Store>(new MultiStore(category, multi_category));
+    return shared_ptr<Store>(new MultiStore(category, multi_category, trigger_path));
   } else if (0 == type.compare("category")) {
-    return shared_ptr<Store>(new CategoryStore(category, multi_category));
+    return shared_ptr<Store>(new CategoryStore(category, multi_category, trigger_path));
   } else if (0 == type.compare("multifile")) {
-    return shared_ptr<Store>(new MultiFileStore(category, multi_category));
+    return shared_ptr<Store>(new MultiFileStore(category, multi_category, trigger_path));
   } else if (0 == type.compare("thriftmultifile")) {
-    return shared_ptr<Store>(new ThriftMultiFileStore(category, multi_category));
+    return shared_ptr<Store>(new ThriftMultiFileStore(category, multi_category, trigger_path));
   } else {
     return shared_ptr<Store>();
   }
 }
 
-Store::Store(const string& category, const string &type, bool multi_category)
+Store::Store(const string& category, const string &type, bool multi_category, const string& trigger_path)
   : categoryHandled(category),
     multiCategory(multi_category),
-    storeType(type) {
+    storeType(type),
+    triggerPath(trigger_path) {
   pthread_mutex_init(&statusMutex, NULL);
 }
 
@@ -130,9 +132,23 @@ const std::string& Store::getType() {
   return storeType;
 }
 
+bool Store::runTrigger(const std::string& message) {
+  if(!triggerPath.empty()) {
+    pid_t pID = fork();
+    if (pID == 0)
+    {
+      execl(triggerPath.c_str(), triggerPath.c_str(), categoryHandled.c_str(), message.c_str(), (char *)0);
+      exit(0);
+    }
+    return true;
+  }
+  return false;
+}
+
+
 FileStoreBase::FileStoreBase(const string& category, const string &type,
-                             bool multi_category)
-  : Store(category, type, multi_category),
+                             bool multi_category, const string& trigger_path)
+  : Store(category, type, multi_category, trigger_path),
     baseFilePath("/tmp"),
     subDirectory(""),
     filePath("/tmp"),
@@ -520,8 +536,8 @@ void FileStoreBase::setHostNameSubDir() {
 }
 
 FileStore::FileStore(const string& category, bool multi_category,
-                     bool is_buffer_file)
-  : FileStoreBase(category, "file", multi_category),
+                     const string& trigger_path, bool is_buffer_file)
+  : FileStoreBase(category, "file", multi_category, trigger_path),
     isBufferFile(is_buffer_file),
     addNewlines(false) {
 }
@@ -686,7 +702,7 @@ void FileStore::flush() {
 }
 
 shared_ptr<Store> FileStore::copy(const std::string &category) {
-  FileStore *store = new FileStore(category, multiCategory, isBufferFile);
+  FileStore *store = new FileStore(category, multiCategory, triggerPath, isBufferFile);
   shared_ptr<Store> copied = shared_ptr<Store>(store);
 
   store->addNewlines = addNewlines;
@@ -941,8 +957,9 @@ bool FileStore::empty(struct tm* now) {
 }
 
 
-ThriftFileStore::ThriftFileStore(const std::string& category, bool multi_category)
-  : FileStoreBase(category, "thriftfile", multi_category),
+ThriftFileStore::ThriftFileStore(const std::string& category, bool multi_category,
+                                 const string& trigger_path)
+  : FileStoreBase(category, "thriftfile", multi_category, trigger_path),
     flushFrequencyMs(0),
     msgBufferSize(0),
     useSimpleFile(0) {
@@ -952,7 +969,7 @@ ThriftFileStore::~ThriftFileStore() {
 }
 
 shared_ptr<Store> ThriftFileStore::copy(const std::string &category) {
-  ThriftFileStore *store = new ThriftFileStore(category, multiCategory);
+  ThriftFileStore *store = new ThriftFileStore(category, multiCategory, triggerPath);
   shared_ptr<Store> copied = shared_ptr<Store>(store);
 
   store->flushFrequencyMs = flushFrequencyMs;
@@ -1125,8 +1142,9 @@ bool ThriftFileStore::createFileDirectory () {
   return true;
 }
 
-BufferStore::BufferStore(const string& category, bool multi_category)
-  : Store(category, "buffer", multi_category),
+BufferStore::BufferStore(const string& category, bool multi_category,
+                         const string& trigger_path)
+  : Store(category, "buffer", multi_category, trigger_path),
     maxQueueLength(DEFAULT_BUFFERSTORE_MAX_QUEUE_LENGTH),
     bufferSendRate(DEFAULT_BUFFERSTORE_SEND_RATE),
     avgRetryInterval(DEFAULT_BUFFERSTORE_AVG_RETRY_INTERVAL),
@@ -1261,7 +1279,7 @@ void BufferStore::flush() {
 }
 
 shared_ptr<Store> BufferStore::copy(const std::string &category) {
-  BufferStore *store = new BufferStore(category, multiCategory);
+  BufferStore *store = new BufferStore(category, multiCategory, triggerPath);
   shared_ptr<Store> copied = shared_ptr<Store>(store);
 
   store->maxQueueLength = maxQueueLength;
@@ -1477,8 +1495,9 @@ std::string BufferStore::getStatus() {
 }
 
 
-NetworkStore::NetworkStore(const string& category, bool multi_category)
-  : Store(category, "network", multi_category),
+NetworkStore::NetworkStore(const string& category, bool multi_category,
+                           const string& trigger_path)
+  : Store(category, "network", multi_category, trigger_path),
     useConnPool(false),
     smcBased(false),
     remotePort(0),
@@ -1614,7 +1633,7 @@ bool NetworkStore::isOpen() {
 }
 
 shared_ptr<Store> NetworkStore::copy(const std::string &category) {
-  NetworkStore *store = new NetworkStore(category, multiCategory);
+  NetworkStore *store = new NetworkStore(category, multiCategory, triggerPath);
   shared_ptr<Store> copied = shared_ptr<Store>(store);
 
   store->useConnPool = useConnPool;
@@ -1651,8 +1670,9 @@ void NetworkStore::flush() {
   // Nothing to do
 }
 
-BucketStore::BucketStore(const string& category, bool multi_category)
-  : Store(category, "bucket", multi_category),
+BucketStore::BucketStore(const string& category, bool multi_category,
+                         const string& trigger_path)
+  : Store(category, "bucket", multi_category, trigger_path),
     bucketType(context_log),
     delimiter(DEFAULT_BUCKETSTORE_DELIMITER),
     removeKey(false),
@@ -1996,7 +2016,7 @@ void BucketStore::periodicCheck() {
 }
 
 shared_ptr<Store> BucketStore::copy(const std::string &category) {
-  BucketStore *store = new BucketStore(category, multiCategory);
+  BucketStore *store = new BucketStore(category, multiCategory, triggerPath);
   shared_ptr<Store> copied = shared_ptr<Store>(store);
 
   store->numBuckets = numBuckets;
@@ -2169,8 +2189,9 @@ string BucketStore::getMessageWithoutKey(const std::string& message) {
 // RedisStore
 // ############################################################################
 
-RedisStore::RedisStore(const std::string& category, bool multi_category)
-  : Store(category, "null", multi_category),
+RedisStore::RedisStore(const std::string& category, bool multi_category,
+                       const string& trigger_path)
+  : Store(category, "null", multi_category, trigger_path),
   redisHost("localhost"),
   redisPort(6379)
 {}
@@ -2179,7 +2200,7 @@ RedisStore::~RedisStore() {
 }
 
 boost::shared_ptr<Store> RedisStore::copy(const std::string &category) {
-  RedisStore *store = new RedisStore(category, multiCategory);
+  RedisStore *store = new RedisStore(category, multiCategory, triggerPath);
   shared_ptr<Store> copied = shared_ptr<Store>(store);
   return copied;
 }
@@ -2205,6 +2226,7 @@ bool RedisStore::isOpen() {
 }
 
 void RedisStore::configure(pStoreConf configuration) {
+  // Redis connection settings
   configuration->getString("redis_host", redisHost);
   configuration->getUnsigned("redis_port", redisPort);
 }
@@ -2227,7 +2249,7 @@ bool RedisStore::handleMessages(boost::shared_ptr<logentry_vector_t> messages) {
   int day = local->tm_mday;
   int hour = local->tm_hour;
   
-  int n = sprintf(key, "log:%d:%d:%d:%d:%s", year + 1900, month + 1, day, hour, categoryHandled.c_str());
+  sprintf(key, "log:%d:%d:%d:%d:%s", year + 1900, month + 1, day, hour, categoryHandled.c_str());
   
   // Open redis connection
   open();
@@ -2254,6 +2276,7 @@ bool RedisStore::handleMessages(boost::shared_ptr<logentry_vector_t> messages) {
     }
 
     freeReplyObject(reply);
+    runTrigger(message);
   }
   
   // Close redis connection
@@ -2286,15 +2309,16 @@ bool RedisStore::empty(struct tm* now) {
 
 
 
-NullStore::NullStore(const std::string& category, bool multi_category)
-  : Store(category, "null", multi_category)
+NullStore::NullStore(const std::string& category, bool multi_category,
+                     const string& trigger_path)
+  : Store(category, "null", multi_category, trigger_path)
 {}
 
 NullStore::~NullStore() {
 }
 
 boost::shared_ptr<Store> NullStore::copy(const std::string &category) {
-  NullStore *store = new NullStore(category, multiCategory);
+  NullStore *store = new NullStore(category, multiCategory, triggerPath);
   shared_ptr<Store> copied = shared_ptr<Store>(store);
   return copied;
 }
@@ -2338,15 +2362,16 @@ bool NullStore::empty(struct tm* now) {
   return true;
 }
 
-MultiStore::MultiStore(const std::string& category, bool multi_category)
-  : Store(category, "multi", multi_category) {
+MultiStore::MultiStore(const std::string& category, bool multi_category,
+                       const string& trigger_path)
+  : Store(category, "multi", multi_category, trigger_path) {
 }
 
 MultiStore::~MultiStore() {
 }
 
 boost::shared_ptr<Store> MultiStore::copy(const std::string &category) {
-  MultiStore *store = new MultiStore(category, multiCategory);
+  MultiStore *store = new MultiStore(category, multiCategory, triggerPath);
   store->report_success = this->report_success;
   boost::shared_ptr<Store> tmp_copy;
   for (std::vector<boost::shared_ptr<Store> >::iterator iter = stores.begin();
@@ -2505,20 +2530,22 @@ void MultiStore::flush() {
   }
 }
 
-CategoryStore::CategoryStore(const std::string& category, bool multiCategory)
-  : Store(category, "category", multiCategory) {
+CategoryStore::CategoryStore(const std::string& category, bool multiCategory,
+                             const string& trigger_path)
+  : Store(category, "category", multiCategory, trigger_path) {
 }
 
 CategoryStore::CategoryStore(const std::string& category,
-                             const std::string& name, bool multiCategory)
-  : Store(category, name, multiCategory) {
+                             const std::string& name, bool multiCategory,
+                             const string& trigger_path)
+  : Store(category, name, multiCategory, trigger_path) {
 }
 
 CategoryStore::~CategoryStore() {
 }
 
 boost::shared_ptr<Store> CategoryStore::copy(const std::string &category) {
-  CategoryStore *store = new CategoryStore(category, multiCategory);
+  CategoryStore *store = new CategoryStore(category, multiCategory, triggerPath);
 
   store->modelStore = modelStore->copy(category);
 
@@ -2667,8 +2694,9 @@ void CategoryStore::flush() {
   }
 }
 
-MultiFileStore::MultiFileStore(const std::string& category, bool multi_category)
-  : CategoryStore(category, "MultiFileStore", multi_category) {
+MultiFileStore::MultiFileStore(const std::string& category, bool multi_category,
+                               const string& trigger_path)
+  : CategoryStore(category, "MultiFileStore", multi_category, trigger_path) {
 }
 
 MultiFileStore::~MultiFileStore() {
@@ -2679,8 +2707,9 @@ void MultiFileStore::configure(pStoreConf configuration) {
 }
 
 ThriftMultiFileStore::ThriftMultiFileStore(const std::string& category,
-                                           bool multi_category)
-  : CategoryStore(category, "ThriftMultiFileStore", multi_category) {
+                                           bool multi_category,
+                                           const string& trigger_path)
+  : CategoryStore(category, "ThriftMultiFileStore", multi_category, trigger_path) {
 }
 
 ThriftMultiFileStore::~ThriftMultiFileStore() {
