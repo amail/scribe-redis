@@ -20,31 +20,6 @@
 #ifndef SCRIBE_ENV
 #define SCRIBE_ENV
 
-#include "thrift/protocol/TBinaryProtocol.h"
-#include "thrift/server/TNonblockingServer.h"
-#include "thrift/concurrency/ThreadManager.h"
-#include "thrift/concurrency/PosixThreadFactory.h"
-#include "thrift/concurrency/Mutex.h"
-#include "thrift/transport/TSocket.h"
-#include "thrift/transport/TSocketPool.h"
-#include "thrift/transport/TServerSocket.h"
-#include "thrift/transport/TTransportUtils.h"
-#include "thrift/transport/THttpClient.h"
-#include "thrift/transport/TFileTransport.h"
-#include "thrift/transport/TBufferTransports.h"
-#include "thrift/transport/TSimpleFileTransport.h"
-
-#include "fb303/FacebookBase.h"
-
-#include "src/gen-cpp/scribe.h"
-#include "src/gen-cpp/BucketStoreMapping.h"
-
-typedef boost::shared_ptr<scribe::thrift::LogEntry> logentry_ptr_t;
-typedef std::vector<logentry_ptr_t> logentry_vector_t;
-typedef std::vector<std::pair<std::string, int> > server_vector_t;
-
-// scribe version
-const std::string scribeversion("2.2");
 #define DEFAULT_CONF_FILE_LOCATION "/usr/local/scribe/scribe.conf"
 
 /*
@@ -67,43 +42,21 @@ const std::string scribeversion("2.2");
     fprintf(stderr,"[%s] " #format_string " \n", dbgtime,##__VA_ARGS__); \
   }
 
-
-namespace scribe {
-
 /*
  * Network based configuration and directory service
  */
 
-namespace network_config {
+class network_config {
+ public:
   // gets a vector of machine/port pairs for a named service
   // returns true on success
-  bool getService(const std::string& serviceName,
+  static bool getService(const std::string& serviceName,
                          const std::string& options,
-                         server_vector_t& _return);
+                         server_vector_t& _return) {
+    return false;
+  }
+};
 
-} // !namespace scribe::network_config
-
-/*
- * Concurrency mechanisms
- */
-
-namespace concurrency {
-  using apache::thrift::concurrency::ReadWriteMutex;
-
-  // returns a new instance of read/write mutex.
-  // you can choose different implementations based on your needs.
-  boost::shared_ptr<ReadWriteMutex> createReadWriteMutex();
-
-} // !namespace scribe::concurrency
-
-/*
- * Time functions
- */
-
-namespace clock {
-  unsigned long nowInMsec();
-
-} // !namespace scribe::clock
 
 /*
  * Hash functions
@@ -112,24 +65,16 @@ namespace clock {
 // You can probably find better hash functions than these
 class integerhash {
  public:
-  static uint32_t hash32(uint32_t key);
+  static uint32_t hash32(uint32_t key) {
+    return key;
+  }
 };
 
 class strhash {
  public:
-  static uint32_t hash32(const char *s);
+  static uint32_t hash32(const char *s) {
+    return 0;
+  }
 };
-
-/*
- * Starting a scribe server.
- */
-void startServer();
-
-/*
- * Stopping a scribe server.
- */
-void stopServer();
-
-} // !namespace scribe
 
 #endif // SCRIBE_ENV

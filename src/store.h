@@ -53,10 +53,11 @@ class Store {
   // Creates an object of the appropriate subclass.
   static boost::shared_ptr<Store>
     createStore(const std::string& type, const std::string& category,
-                bool readable = false, bool multi_category = false);
+                bool readable = false, bool multi_category = false,
+                const std::string& trigger_path = "");
 
   Store(const std::string& category, const std::string &type,
-        bool multi_category = false);
+        bool multi_category = false, const std::string& trigger_path = "");
   virtual ~Store();
 
   virtual boost::shared_ptr<Store> copy(const std::string &category) = 0;
@@ -86,6 +87,9 @@ class Store {
 
  protected:
   virtual void setStatus(const std::string& new_status);
+  virtual bool runTrigger(const std::string& message);
+  bool useTriggers;
+  std::string triggerPath;
   std::string status;
   std::string categoryHandled;
   bool multiCategory;             // Whether multiple categories are handled
@@ -107,7 +111,7 @@ class Store {
 class FileStoreBase : public Store {
  public:
   FileStoreBase(const std::string& category, const std::string &type,
-                bool multi_category);
+                bool multi_category, const std::string& trigger_path);
   ~FileStoreBase();
 
   virtual void copyCommon(const FileStoreBase *base);
@@ -185,7 +189,7 @@ class FileStore : public FileStoreBase {
 
  public:
   FileStore(const std::string& category, bool multi_category,
-            bool is_buffer_file = false);
+            const std::string& trigger_path, bool is_buffer_file = false);
   ~FileStore();
 
   boost::shared_ptr<Store> copy(const std::string &category);
@@ -228,7 +232,8 @@ class FileStore : public FileStoreBase {
  */
 class ThriftFileStore : public FileStoreBase {
  public:
-  ThriftFileStore(const std::string& category, bool multi_category);
+  ThriftFileStore(const std::string& category, bool multi_category,
+                  const std::string& trigger_path);
   ~ThriftFileStore();
 
   boost::shared_ptr<Store> copy(const std::string &category);
@@ -269,7 +274,8 @@ class ThriftFileStore : public FileStoreBase {
 class BufferStore : public Store {
 
  public:
-  BufferStore(const std::string& category, bool multi_category);
+  BufferStore(const std::string& category, bool multi_category,
+              const std::string& trigger_path);
   ~BufferStore();
 
   boost::shared_ptr<Store> copy(const std::string &category);
@@ -332,7 +338,8 @@ class BufferStore : public Store {
 class NetworkStore : public Store {
 
  public:
-  NetworkStore(const std::string& category, bool multi_category);
+  NetworkStore(const std::string& category, bool multi_category,
+               const std::string& trigger_path);
   ~NetworkStore();
 
   boost::shared_ptr<Store> copy(const std::string &category);
@@ -376,7 +383,8 @@ class NetworkStore : public Store {
 class BucketStore : public Store {
 
  public:
-  BucketStore(const std::string& category, bool multi_category);
+  BucketStore(const std::string& category, bool multi_category,
+              const std::string& trigger_path);
   ~BucketStore();
 
   boost::shared_ptr<Store> copy(const std::string &category);
@@ -426,7 +434,8 @@ class BucketStore : public Store {
 class RedisStore : public Store {
 
  public:
-  RedisStore(const std::string& category, bool multi_category);
+  RedisStore(const std::string& category, bool multi_category,
+             const std::string& trigger_path);
   virtual ~RedisStore();
 
   boost::shared_ptr<Store> copy(const std::string &category);
@@ -466,7 +475,8 @@ class RedisStore : public Store {
 class NullStore : public Store {
 
  public:
-  NullStore(const std::string& category, bool multi_category);
+  NullStore(const std::string& category, bool multi_category,
+            const std::string& trigger_path);
   virtual ~NullStore();
 
   boost::shared_ptr<Store> copy(const std::string &category);
@@ -499,7 +509,8 @@ class NullStore : public Store {
  */
 class MultiStore : public Store {
  public:
-  MultiStore(const std::string& category, bool multi_category);
+  MultiStore(const std::string& category, bool multi_category,
+             const std::string& trigger_path);
   ~MultiStore();
 
   boost::shared_ptr<Store> copy(const std::string &category);
@@ -541,9 +552,10 @@ class MultiStore : public Store {
  */
 class CategoryStore : public Store {
  public:
-  CategoryStore(const std::string& category, bool multi_category);
+  CategoryStore(const std::string& category, bool multi_category,
+                const std::string& trigger_path);
   CategoryStore(const std::string& category, const std::string& name,
-                bool multiCategory);
+                bool multiCategory, const std::string& trigger_path);
   ~CategoryStore();
 
   boost::shared_ptr<Store> copy(const std::string &category);
@@ -574,7 +586,8 @@ class CategoryStore : public Store {
  */
 class MultiFileStore : public CategoryStore {
  public:
-  MultiFileStore(const std::string& category, bool multi_category);
+  MultiFileStore(const std::string& category, bool multi_category,
+                 const std::string& trigger_path);
   ~MultiFileStore();
   void configure(pStoreConf configuration);
 
@@ -591,7 +604,8 @@ class MultiFileStore : public CategoryStore {
  */
 class ThriftMultiFileStore : public CategoryStore {
  public:
-  ThriftMultiFileStore(const std::string& category, bool multi_category);
+  ThriftMultiFileStore(const std::string& category, bool multi_category,
+                       const std::string& trigger_path);
   ~ThriftMultiFileStore();
   void configure(pStoreConf configuration);
 
