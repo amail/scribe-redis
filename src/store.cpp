@@ -2237,7 +2237,7 @@ void RedisStore::close() {
 
 bool RedisStore::handleMessages(boost::shared_ptr<logentry_vector_t> messages) {
   redisReply *reply;
-  char key[60];
+  char key[200];
   
   // Generate key
   time_t rawtime;
@@ -2260,8 +2260,8 @@ bool RedisStore::handleMessages(boost::shared_ptr<logentry_vector_t> messages) {
        ++iter) {
        
     std::string message = (*iter)->message;
-    char msg[600];
     unsigned long int leng = message.length();
+    char msg[leng];
     memcpy(&msg, message.c_str(), leng);
     msg[leng - 1] = '\0';
     
