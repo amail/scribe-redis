@@ -31,6 +31,7 @@ all:
 # fb_home
 # fb303_home
 # hadoop_home
+# hiredis_home
 #
 THRIFT = $(thrift_home)/bin/thrift
 
@@ -64,7 +65,7 @@ AM_CPPFLAGS += -I$(thrift_home)/include/thrift
 AM_CPPFLAGS += -I$(fb303_home)/include/thrift
 AM_CPPFLAGS += -I$(fb303_home)/include/thrift/fb303
 AM_CPPFLAGS += -I$(hadoop_home)/include
-AM_CPPFLAGS += -I$(thrift_home)/include/hiredis
+AM_CPPFLAGS += -I$(hiredis_home)/include/hiredis
 AM_CPPFLAGS += $(BOOST_CPPFLAGS)
 AM_CPPFLAGS += $(FB_CPPFLAGS) $(DEBUG_CPPFLAGS)
 
