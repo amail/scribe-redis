@@ -30,10 +30,6 @@
 #include "conf.h"
 #include "file.h"
 #include "conn_pool.h"
-extern "C" {
-  #include <hiredis.h>
-  #include <time.h>
-}
 
 /* defines used by the store class */
 enum roll_period_t {
@@ -428,46 +424,6 @@ class BucketStore : public Store {
   void createBuckets(pStoreConf configuration);
 };
 
-/*
- * This store will log to a redis server
- */
-class RedisStore : public Store {
-
- public:
-  RedisStore(const std::string& category, bool multi_category,
-             const std::string& trigger_path);
-  virtual ~RedisStore();
-
-  boost::shared_ptr<Store> copy(const std::string &category);
-  bool open();
-  bool isOpen();
-  void configure(pStoreConf configuration);
-  void close();
-
-  bool handleMessages(boost::shared_ptr<logentry_vector_t> messages);
-  void flush();
-
-  // configuration
-  std::string redisHost;
-  unsigned long int redisPort;
-  
-  // redis
-  redisContext *c;
-
-  // null stores are readable, but you never get anything
-  virtual bool readOldest(/*out*/ boost::shared_ptr<logentry_vector_t> messages,                          struct tm* now);
-  virtual bool replaceOldest(boost::shared_ptr<logentry_vector_t> messages,
-                             struct tm* now);
-  virtual void deleteOldest(struct tm* now);
-  virtual bool empty(struct tm* now);
-
-
- private:
-  // disallow empty constructor, copy and assignment
-  RedisStore();
-  RedisStore(Store& rhs);
-  RedisStore& operator=(Store& rhs);
-};
 
 /*
  * This store intentionally left blank.
