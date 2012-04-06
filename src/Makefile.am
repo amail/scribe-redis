@@ -96,9 +96,14 @@ endif
 
 # Binaries -- multiple progs can be defined.
 bin_PROGRAMS = scribed
-scribed_SOURCES = store_redis.cpp store.cpp store_queue.cpp conf.cpp file.cpp conn_pool.cpp scribe_server.cpp $(FB_SOURCES)
+scribed_SOURCES = store.cpp store_queue.cpp conf.cpp file.cpp conn_pool.cpp scribe_server.cpp $(FB_SOURCES)
 if USE_SCRIBE_HDFS
   scribed_SOURCES += HdfsFile.cpp
+endif
+if USE_REDIS_ONLY
+  scribed_SOURCES += store_redis.cpp
+else
+  scribed_SOURCES += store_filebase.cpp store_file.cpp store_buffer.cpp store_redis.cpp store_network.cpp store_bucket.cpp store_thriftfile.cpp store_null.cpp store_multi.cpp store_category.cpp store_multifile.cpp store_thriftmultifile.cpp
 endif
 scribed_LDADD = $(EXTERNAL_LIBS) $(INTERNAL_LIBS)
 

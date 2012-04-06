@@ -16,6 +16,8 @@
 // @author Jack Engqvist Johansson
 
 #include "common.h"
+#include "store.h"
+#include "store_redis.h"
 
 using namespace std;
 using namespace boost;
@@ -135,3 +137,4 @@ void RedisStore::deleteOldest(struct tm* now) {
 bool RedisStore::empty(struct tm* now) {
   return true;
 }
+

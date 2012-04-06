@@ -1,4 +1,4 @@
-//  Copyright (c) 2012 Comfirm AB
+//  Copyright (c) 2007-2008 Facebook
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -12,11 +12,19 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+// See accompanying file LICENSE or visit the Scribe site at:
+// http://developers.facebook.com/scribe/
 //
-// @author Jack Engqvist Johansson
+// @author Bobby Johnson
+// @author James Wang
+// @author Jason Sobel
+// @author Alex Moskalyuk
+// @author Avinash Lakshman
+// @author Anthony Giardullo
+// @author Jan Oravec
 
-#ifndef SCRIBE_STORE_REDIS_H
-#define SCRIBE_STORE_REDIS_H
+#ifndef SCRIBE_STORE_NULL_H
+#define SCRIBE_STORE_NULL_H
 
 
 #include "common.h" // includes std libs, thrift, and stl typedefs
@@ -24,20 +32,15 @@
 #include "file.h"
 #include "conn_pool.h"
 
-extern "C" {
-  #include <hiredis.h>
-  #include <time.h>
-}
-
 /*
- * This store will log to a redis server
+ * This store intentionally left blank.
  */
-class RedisStore : public Store {
+class NullStore : public Store {
 
  public:
-  RedisStore(const std::string& category, bool multi_category,
-             const std::string& trigger_path);
-  virtual ~RedisStore();
+  NullStore(const std::string& category, bool multi_category,
+            const std::string& trigger_path);
+  virtual ~NullStore();
 
   boost::shared_ptr<Store> copy(const std::string &category);
   bool open();
@@ -47,13 +50,6 @@ class RedisStore : public Store {
 
   bool handleMessages(boost::shared_ptr<logentry_vector_t> messages);
   void flush();
-
-  // configuration
-  std::string redisHost;
-  unsigned long int redisPort;
-  
-  // redis
-  redisContext *c;
 
   // null stores are readable, but you never get anything
   virtual bool readOldest(/*out*/ boost::shared_ptr<logentry_vector_t> messages,                          struct tm* now);
@@ -65,10 +61,10 @@ class RedisStore : public Store {
 
  private:
   // disallow empty constructor, copy and assignment
-  RedisStore();
-  RedisStore(Store& rhs);
-  RedisStore& operator=(Store& rhs);
+  NullStore();
+  NullStore(Store& rhs);
+  NullStore& operator=(Store& rhs);
 };
 
-#endif // SCRIBE_STORE_REDIS_H
+#endif // SCRIBE_STORE_NULL_H
 
