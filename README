@@ -57,10 +57,11 @@ Requirements
 
 [libevent] Event Notification library
 [boost] Boost C++ library (version 1.36 or later)
-[thrift] Thrift framework (version 0.5.0 or later)
+[thrift] Thrift framework (version 0.4.0 or later)
 [fb303] Facebook Bassline (included in thrift/contrib/fb303/)
    fb303 r697294 or later is required.
 [hadoop] optional. version 0.19.1 or higher (http://hadoop.apache.org)
+[hiredis] optional. version 1.2 or higher (https://github.com/antirez/hiredis)
 
 These libraries are open source and may be freely obtained, but they are not
 provided as a part of this distribution.
@@ -130,12 +131,17 @@ Examples:
 # installed, you will need to specify the Boost path and library names
 ./configure --with-boost=/usr/local --with-boost-system=boost_system-gcc40-mt-1_36 --with-boost-filesystem=boost_filesystem-gcc40-mt-1_36
 
+# To build with redis support only
+./configure --enable-redis-only
 
 Install
 =======
 
 as root:
 make install
+
+On FreeBSD:
+gmake install
 
 
 Run

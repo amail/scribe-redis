@@ -32,6 +32,14 @@
 #include "file.h"
 #include "conn_pool.h"
 
+/* defines used by the store class */
+enum roll_period_t {
+  ROLL_NEVER,
+  ROLL_HOURLY,
+  ROLL_DAILY,
+  ROLL_OTHER
+};
+
 /*
  * Abstract class that serves as a base for file-based stores.
  * This class has logic for naming files and deciding when to rotate.

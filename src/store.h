@@ -31,15 +31,6 @@
 #include "file.h"
 #include "conn_pool.h"
 
-/* defines used by the store class */
-enum roll_period_t {
-  ROLL_NEVER,
-  ROLL_HOURLY,
-  ROLL_DAILY,
-  ROLL_OTHER
-};
-
-
 /*
  * Abstract class to define the interface for a store
  * and implement some basic functionality.

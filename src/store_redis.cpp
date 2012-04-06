@@ -15,7 +15,6 @@
 //
 // @author Jack Engqvist Johansson
 
-#include "common.h"
 #include "store.h"
 #include "store_redis.h"
 
@@ -69,8 +68,15 @@ void RedisStore::close() {
 }
 
 bool RedisStore::handleMessages(boost::shared_ptr<logentry_vector_t> messages) {
+  unsigned long int leng_key;
+  unsigned long int leng_msg;
+  unsigned long int leng_cmd;
   redisReply *reply;
-  char key[200];
+
+  // Key length
+  leng_key = categoryHandled.length() + 19;
+  leng_cmd = leng_key + 10;
+  char key[leng_key];
   
   // Generate key
   time_t rawtime;
@@ -93,12 +99,12 @@ bool RedisStore::handleMessages(boost::shared_ptr<logentry_vector_t> messages) {
        ++iter) {
        
     std::string message = (*iter)->message;
-    unsigned long int leng = message.length();
-    char msg[leng];
-    memcpy(&msg, message.c_str(), leng);
-    msg[leng - 1] = '\0';
+    leng_msg = message.length();
+    char msg[leng_msg];
+    memcpy(&msg, message.c_str(), leng_msg);
+    msg[leng_msg - 1] = '\0';
     
-    char cmd[800];
+    char cmd[leng_cmd];
     sprintf(cmd, "LPUSH %s %%s", key);
     
     try {
